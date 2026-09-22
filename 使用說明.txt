@@ -1,0 +1,15 @@
+帳智 AI｜iPhone 主畫面版
+
+這是 PWA 版本。它可以在 iPhone Safari 開啟後加入主畫面，使用時看起來像一般 App。
+
+使用：
+1. 把整個資料夾放到一個 HTTPS 網址（例如你的網站空間）。
+2. 用 iPhone Safari 開啟該網址。
+3. 點 Safari 的「分享」→「加入主畫面」。
+4. 從主畫面點「帳智 AI」即可使用。
+
+注意：
+- PWA 必須從 HTTPS 網址開啟；直接從「檔案」App 點 index.html，不能完整啟用 PWA。
+- OCR 仍需要在 App 的「設定」輸入 ScanBills API Token。
+- 正式商用建議把 OCR API 放在自己的後端，避免 Token 暴露在前端。
+- 帳務資料目前保存在本機瀏覽器。
