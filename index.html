@@ -19,7 +19,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid 
 nav button{flex:1;border-radius:0;background:#fff;color:#626a75;font-size:13px;padding:12px 4px}
 nav button.active{color:#111827;font-weight:750}.tab{display:none}.tab.active{display:block}
 .preview{width:100%;max-height:300px;object-fit:contain;border-radius:12px;background:#f0f1f3;margin-top:10px}
-.item{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #eee}.item:last-child{border:0}
+.item{display:flex;justify-content:space-between;align-items:flex-start;padding:12px 0;border-bottom:1px solid #eee}.item:last-child{border:0}
 .green{color:#14804a}.red{color:#c23b3b}
 .modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;z-index:20}
 .sheet{background:#fff;width:100%;border-radius:22px 22px 0 0;padding:18px;max-height:88vh;overflow:auto}
@@ -35,6 +35,10 @@ label{display:block;font-size:13px;color:#626a75;margin:10px 0 5px}
 <div class="muted" style="margin-top:12px">本月支出</div><div class="kpi" id="expense">$0</div>
 <div class="muted" style="margin-top:12px">本月淨利</div><div class="kpi" id="profit">$0</div>
 </div>
+<div class="card"><h3>新增帳務</h3>
+<p class="muted">可自行新增收入或支出明細，不需要拍發票。</p>
+<div class="row"><button id="addIncomeBtn">＋ 新增收入</button><button id="addExpenseBtn">－ 新增支出</button></div>
+</div>
 <div class="card"><h3>拍發票自動記帳</h3>
 <p class="muted">照片直接在手機瀏覽器進行 OCR，不需要 ScanBills Token。</p>
 <label>選擇發票照片</label><input id="photo" type="file" accept="image/*" capture="environment">
@@ -48,6 +52,17 @@ label{display:block;font-size:13px;color:#626a75;margin:10px 0 5px}
 <button class="secondary" id="exportBtn">匯出帳務 JSON</button><button class="secondary" id="resetBtn" style="margin-top:8px">清除所有帳務</button></div></section>
 </main>
 <nav><button class="active" data-tab="home">首頁</button><button data-tab="books">帳務</button><button data-tab="reports">報表</button><button data-tab="settings">設定</button></nav>
+<div class="modal" id="entryModal"><div class="sheet"><h3 id="entryTitle">新增帳務</h3>
+<label>類型</label><select id="e_type"><option value="income">收入</option><option value="expense">支出</option></select>
+<label>日期</label><input id="e_date" type="date">
+<label>明細／項目</label><input id="e_desc" placeholder="例如：客戶付款、購買文具">
+<label>會計分類（可自訂）</label><input id="e_cat" placeholder="例如：銷貨收入、辦公費、材料費">
+<label>金額</label><input id="e_amount" type="number" min="0" step="1" placeholder="0">
+<label>稅額</label><input id="e_tax" type="number" min="0" step="1" value="0">
+<label>發票號碼（可不填）</label><input id="e_invoice" placeholder="例如：AB-12345678">
+<label>備註（可不填）</label><input id="e_note" placeholder="補充說明">
+<div class="row" style="margin-top:15px"><button id="saveEntryBtn">儲存</button><button class="secondary" id="cancelEntryBtn">取消</button></div>
+</div></div>
 <div class="modal" id="modal"><div class="sheet"><h3>OCR 結果確認</h3><div id="form"></div><div class="row" style="margin-top:15px"><button id="saveBtn">確認入帳</button><button class="secondary" id="cancelBtn">取消</button></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
@@ -58,10 +73,11 @@ function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&l
 function save(){localStorage.setItem(KEY,JSON.stringify(txs));render()}
 function render(){let inc=0,exp=0;txs.forEach(t=>t.type==='income'?inc+=+t.amount:exp+=+t.amount);
 $('income').textContent=money(inc);$('expense').textContent=money(exp);$('profit').textContent=money(inc-exp);
-$('tx').innerHTML=txs.length?txs.slice().reverse().map(t=>`<div class="item"><div><b>${esc(t.category||'未分類')}</b><div class="muted">${esc(t.date||'')} ${esc(t.store||'')}</div></div><div class="${t.type==='income'?'green':'red'}">${t.type==='income'?'+':'-'}${money(t.amount)}</div></div>`).join(''):'<div class="muted">尚無交易</div>';
+$('tx').innerHTML=txs.length?txs.slice().reverse().map(t=>`<div class="item"><div style="flex:1"><b>${esc(t.category||'未分類')}</b><div class="muted">${esc(t.date||'')} ${esc(t.store||t.description||'')}</div>${t.note?`<div class="muted">${esc(t.note)}</div>`:''}</div><div style="text-align:right;margin-left:10px"><div class="${t.type==='income'?'green':'red'}">${t.type==='income'?'+':'-'}${money(t.amount)}</div><button class="secondary deleteTx" data-id="${t.id}" style="padding:6px 9px;font-size:12px;margin-top:5px">刪除</button></div></div>`).join(''):'<div class="muted">尚無交易</div>';
+document.querySelectorAll('.deleteTx').forEach(b=>b.onclick=()=>deleteTx(b.dataset.id));
 $('report').innerHTML=`<div class="item"><span>收入</span><b>${money(inc)}</b></div><div class="item"><span>支出</span><b>${money(exp)}</b></div><div class="item"><span>淨利</span><b>${money(inc-exp)}</b></div>`}
 function classify(store,text){const s=(store+' '+text).toLowerCase();
-if(/7-11|711|全家|familymart|萊爾富|ok mart|全聯|家樂福|超商|餐廳|便當|麥當勞|星巴克|咖啡/.test(s))return'餐費';
+if(/7-11|7-eleven|711|全家|familymart|萊爾富|ok mart|全聯|家樂福|超商|餐廳|便當|麥當勞|星巴克|咖啡/.test(s))return'餐費';
 if(/中華電信|台灣大哥大|遠傳|電信|寬頻/.test(s))return'通訊費';
 if(/uber|高鐵|台鐵|捷運|計程車|停車|加油|租車/.test(s))return'交通費';
 if(/台電|自來水|瓦斯|水電/.test(s))return'水電費';
@@ -69,15 +85,34 @@ if(/租金|房租/.test(s))return'租金';
 if(/google|microsoft|adobe|canva|openai|aws|icloud|dropbox/.test(s))return'軟體／訂閱';
 if(/廣告|facebook ads|meta ads|google ads/.test(s))return'廣告費';
 if(/文具|影印|辦公|office|文書/.test(s))return'辦公費';return'未分類'}
-function extract(text){const lines=text.split(/\n+/).map(x=>x.trim()).filter(Boolean);
-let invoice=(text.match(/[A-Z]{2}[- ]?\d{8}/i)||[])[0]||'';
-let nums=[...text.matchAll(/(?:NT\$|＄|\$)?\s*([0-9][0-9,]{1,})/g)].map(m=>+m[1].replace(/,/g,'')).filter(n=>n>0&&n<10000000);
-let total=0;let tm=text.match(/(?:總計|應付|合計|TOTAL|金額)[^\d]{0,12}([0-9][0-9,]*)/i);
-if(tm)total=+tm[1].replace(/,/g,'');else if(nums.length)total=Math.max(...nums);
-let tax=0;let taxm=text.match(/(?:稅額|營業稅|稅)[^\d]{0,12}([0-9][0-9,]*)/i);if(taxm)tax=+taxm[1].replace(/,/g,'');
-let date=(text.match(/20\d{2}[\/\-.]\d{1,2}[\/\-.]\d{1,2}/)||[])[0]||'';
-let store=lines.find(x=>x.length>=2&&x.length<=30&&!/發票|統一編號|日期|時間|總計|金額|稅/.test(x))||'未辨識店家';
-return {store,total,tax,invoice,date,category:classify(store,text),raw:text}}
+function extract(text){
+const lines=text.split(/\n+/).map(x=>x.trim()).filter(Boolean);
+let invoice=(text.match(/\b[A-Z]{2}[-\s]?\d{8}\b/i)||[])[0]||'';
+invoice=invoice.replace(/\s+/g,'-').toUpperCase();
+let date='';
+const d1=text.match(/20\d{2}[\/\-.]\d{1,2}[\/\-.]\d{1,2}/);
+if(d1) date=d1[0];
+let store='';
+const storeLine=lines.find(x=>/店名\s*[:：]/.test(x));
+if(storeLine) store=storeLine.replace(/^.*店名\s*[:：]\s*/,'').trim();
+if(!store){
+  const known=lines.find(x=>/7-?ELEVEN|全家|萊爾富|OK超商|統一超商/i.test(x));
+  if(known) store=known.trim();
+}
+if(!store) store='未辨識店家';
+let total=0;
+const totalMatch=text.match(/(?:總計|應付|合計|實付|現金)[\s:：]*([0-9][0-9,]*)/i);
+if(totalMatch) total=Number(totalMatch[1].replace(/,/g,''));
+let tax=0;
+const taxMatch=text.match(/(?:稅額|營業稅)[\s:：]*([0-9][0-9,]*)/i);
+if(taxMatch) tax=Number(taxMatch[1].replace(/,/g,''));
+if(!total){
+  const money=[...text.matchAll(/(?:NT\$|＄|\$)\s*([0-9][0-9,]*)/g)]
+    .map(m=>Number(m[1].replace(/,/g,''))).filter(n=>n>0&&n<10000000);
+  if(money.length) total=Math.max(...money);
+}
+return {store,total,tax,invoice,date,category:classify(store,text),raw:text}
+}
 $('photo').onchange=e=>{const f=e.target.files[0];if(f){$('preview').src=URL.createObjectURL(f);$('preview').style.display='block';$('status').textContent='照片已選取，按「開始 OCR」。'}};
 $('clearBtn').onclick=()=>{$('photo').value='';$('preview').style.display='none';$('status').textContent=''};
 $('ocrBtn').onclick=async()=>{const f=$('photo').files[0];if(!f){$('status').textContent='請先拍照或選擇發票照片。';return}
@@ -89,5 +124,50 @@ $('cancelBtn').onclick=()=>{$('modal').style.display='none'};
 $('saveBtn').onclick=()=>{txs.push({id:Date.now(),type:'expense',store:$('f_store').value,date:$('f_date').value,invoice:$('f_invoice').value,amount:+$('f_total').value||0,tax:+$('f_tax').value||0,category:$('f_cat').value,createdAt:new Date().toISOString()});save();$('modal').style.display='none';alert('已入帳')};
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));$(b.dataset.tab).classList.add('active')});
 $('exportBtn').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(txs,null,2)],{type:'application/json'}));a.download='帳智AI_帳務.json';a.click()};
-$('resetBtn').onclick=()=>{if(confirm('確定清除所有帳務？')){txs=[];save()}};render();
+$('resetBtn').onclick=()=>{if(confirm('確定清除所有帳務？')){txs=[];save()}}
+function todayISO(){return new Date().toISOString().slice(0,10)}
+function openEntry(type){
+  $('e_type').value=type;
+  $('entryTitle').textContent=type==='income'?'新增收入':'新增支出';
+  $('e_date').value=todayISO();
+  $('e_desc').value=''; $('e_cat').value=''; $('e_amount').value=''; $('e_tax').value='0'; $('e_invoice').value=''; $('e_note').value='';
+  $('entryModal').style.display='flex';
+}
+function deleteTx(id){
+  const item=txs.find(t=>String(t.id)===String(id));
+  if(!item)return;
+  if(confirm('確定要刪除這筆帳務嗎？')){
+    txs=txs.filter(t=>String(t.id)!==String(id));
+    save();
+  }
+}
+$('addIncomeBtn').onclick=()=>openEntry('income');
+$('addExpenseBtn').onclick=()=>openEntry('expense');
+$('cancelEntryBtn').onclick=()=>$('entryModal').style.display='none';
+$('e_type').onchange=()=>{$('entryTitle').textContent=$('e_type').value==='income'?'新增收入':'新增支出'};
+$('saveEntryBtn').onclick=()=>{
+  const amount=Number($('e_amount').value);
+  const desc=$('e_desc').value.trim();
+  const cat=$('e_cat').value.trim();
+  if(!amount || amount<0){alert('請輸入正確金額');return}
+  if(!desc){alert('請輸入明細／項目');return}
+  if(!cat){alert('請輸入會計分類');return}
+  txs.push({
+    id:Date.now(),
+    type:$('e_type').value,
+    store:desc,
+    description:desc,
+    date:$('e_date').value||todayISO(),
+    invoice:$('e_invoice').value.trim(),
+    amount,
+    tax:Number($('e_tax').value)||0,
+    category:cat,
+    note:$('e_note').value.trim(),
+    createdAt:new Date().toISOString()
+  });
+  save();
+  $('entryModal').style.display='none';
+  alert('已新增並入帳');
+};
+;render();
 </script></body></html>
