@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-title" content="小公主專用記帳本">
 <link rel="icon" type="image/png" sizes="512x512" href="app-icon.png">
 <link rel="apple-touch-icon" href="app-icon.png">
-<title>小公主專用記帳本｜無 Token OCR</title>
+<title>小公主專用記帳本｜發票 OCR 修正版</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#FFF7D6;color:#18202a;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif}
 header{padding:22px 18px 14px;background:#fff;border-bottom:1px solid #e7e9ed;position:sticky;top:0;z-index:5}
@@ -51,7 +51,7 @@ nav button.active{color:#A8793E}
 <div class="row"><button id="addIncomeBtn">＋ 新增收入</button><button id="addExpenseBtn">－ 新增支出</button></div>
 </div>
 <div class="card"><h3>拍發票自動記帳</h3>
-<p class="muted">照片直接在手機瀏覽器進行 OCR，不需要 ScanBills Token。</p>
+<p class="muted">拍照後會自動開始 OCR；辨識完成後可確認資料再入帳。</p>
 <label>選擇發票照片</label><input id="photo" type="file" accept="image/*" capture="environment">
 <img id="preview" class="preview" style="display:none">
 <div class="row" style="margin-top:10px"><button id="ocrBtn">開始 OCR</button><button class="secondary" id="clearBtn">清除</button></div>
@@ -93,7 +93,7 @@ nav button.active{color:#A8793E}
 <div class="row" style="margin-top:15px"><button id="saveEntryBtn">儲存</button><button class="secondary" id="cancelEntryBtn">取消</button></div>
 </div></div>
 <div class="modal" id="modal"><div class="sheet"><h3>OCR 結果確認</h3><div id="form"></div><div class="row" style="margin-top:15px"><button id="saveBtn">確認入帳</button><button class="secondary" id="cancelBtn">取消</button></div></div></div>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js?v=5"></script>
 <script>
 const KEY='zhangzhi_transactions_v3';let txs=JSON.parse(localStorage.getItem(KEY)||'[]'),pending=null,worker=null;
 const $=id=>document.getElementById(id);
@@ -148,17 +148,96 @@ if(!total){
 }
 return {store,total,tax,invoice,date,category:classify(store,text),raw:text}
 }
-$('photo').onchange=e=>{const f=e.target.files[0];if(f){$('preview').src=URL.createObjectURL(f);$('preview').style.display='block';$('status').textContent='照片已選取，按「開始 OCR」。'}};
-$('clearBtn').onclick=()=>{$('photo').value='';$('preview').style.display='none';$('status').textContent=''};
-$('ocrBtn').onclick=async()=>{const f=$('photo').files[0];if(!f){$('status').textContent='請先拍照或選擇發票照片。';return}
-$('status').textContent='正在手機上辨識，第一次可能需要較久……';$('ocrBtn').disabled=true;
-try{if(!worker)worker=await Tesseract.createWorker('chi_tra+eng');const {data}=await worker.recognize(f);pending=extract(data.text);
-$('form').innerHTML=`<label>店家</label><input id="f_store" value="${esc(pending.store)}"><label>日期</label><input id="f_date" value="${esc(pending.date)}" placeholder="YYYY/MM/DD"><label>發票號碼</label><input id="f_invoice" value="${esc(pending.invoice)}"><label>付款方式</label><select id="f_payment"><option>現金</option><option>銀行轉帳</option><option>信用卡</option><option>簽帳金融卡</option><option>行動支付</option><option>悠遊卡／一卡通</option><option>其他</option></select>
+async function preprocessImage(file){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      try{
+        const max=1800;
+        const scale=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
+        const c=document.createElement('canvas');
+        c.width=Math.max(1,Math.round(img.naturalWidth*scale));
+        c.height=Math.max(1,Math.round(img.naturalHeight*scale));
+        const ctx=c.getContext('2d',{willReadFrequently:true});
+        ctx.drawImage(img,0,0,c.width,c.height);
+        const data=ctx.getImageData(0,0,c.width,c.height);
+        for(let i=0;i<data.data.length;i+=4){
+          const g=0.299*data.data[i]+0.587*data.data[i+1]+0.114*data.data[i+2];
+          const v=g<150?g*0.72:g>220?255:Math.min(255,g*1.08+8);
+          data.data[i]=data.data[i+1]=data.data[i+2]=v;
+        }
+        ctx.putImageData(data,0,0);
+        c.toBlob(blob=>{URL.revokeObjectURL(url); blob?resolve(blob):reject(new Error('圖片處理失敗'))},'image/jpeg',0.9);
+      }catch(e){URL.revokeObjectURL(url);reject(e)}
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('無法讀取圖片'))};
+    img.src=url;
+  });
+}
+
+async function runOCR(){
+  const f=$('photo').files[0];
+  if(!f){$('status').textContent='請先拍照或選擇發票照片。';return}
+  $('ocrBtn').disabled=true;
+  $('status').textContent='正在準備發票圖片……';
+  try{
+    if(!window.Tesseract) throw new Error('OCR 元件尚未載入，請重新整理網頁後再試。');
+    if(!worker){
+      $('status').textContent='第一次使用正在下載 OCR 語言資料，請稍候……';
+      worker=await Tesseract.createWorker('chi_tra+eng',1,{
+        logger:m=>{
+          if(m && typeof m.progress==='number'){
+            const p=Math.round(m.progress*100);
+            if(m.status) $('status').textContent=`OCR：${m.status} ${p}%`;
+          }
+        }
+      });
+    }
+    const processed=await preprocessImage(f);
+    $('status').textContent='正在辨識發票，請不要關閉頁面……';
+    let result;
+    try{
+      result=await worker.recognize(processed);
+    }catch(firstErr){
+      // 若預處理圖片不適合，退回原始照片再辨識一次
+      result=await worker.recognize(f);
+    }
+    const text=String(result?.data?.text||'').trim();
+    if(!text){
+      throw new Error('OCR 沒有讀到文字。請把發票正面拍清楚、光線充足後再試。');
+    }
+    pending=extract(text);
+    $('form').innerHTML=`<label>店家</label><input id="f_store" value="${esc(pending.store)}"><label>日期</label><input id="f_date" value="${esc(pending.date)}" placeholder="YYYY/MM/DD"><label>發票號碼</label><input id="f_invoice" value="${esc(pending.invoice)}"><label>付款方式</label><select id="f_payment"><option>現金</option><option>銀行轉帳</option><option>信用卡</option><option>簽帳金融卡</option><option>行動支付</option><option>悠遊卡／一卡通</option><option>其他</option></select>
 <label>帳戶</label><select id="f_account"></select>
-<label>總計</label><input id="f_total" type="number" value="${pending.total||0}"><label>稅額</label><input id="f_tax" type="number" value="${pending.tax||0}"><p class="muted">OCR 不是百分之百準確，請確認後才入帳。</p><details><summary>查看原始 OCR</summary><pre style="white-space:pre-wrap;font-size:12px">${esc(pending.raw)}</pre></details>`;
-$('modal').style.display='flex';
-refreshAccountSelectors();
-$('status').textContent='辨識完成，請確認資料。'}catch(e){$('status').textContent='OCR 失敗：'+e.message}$('ocrBtn').disabled=false};
+<label>總計</label><input id="f_total" type="number" value="${pending.total||0}"><label>稅額</label><input id="f_tax" type="number" value="${pending.tax||0}"><p class="muted">OCR 已完成，請確認資料後按「確認入帳」。</p><details><summary>查看原始 OCR</summary><pre style="white-space:pre-wrap;font-size:12px">${esc(pending.raw)}</pre></details>`;
+    $('modal').style.display='flex';
+    refreshAccountSelectors();
+    $('status').textContent='辨識完成，請確認資料後入帳。';
+  }catch(e){
+    console.error('OCR error',e);
+    $('status').textContent='❌ OCR 失敗：'+(e?.message||e);
+  }finally{
+    $('ocrBtn').disabled=false;
+  }
+}
+
+$('photo').onchange=e=>{
+  const f=e.target.files[0];
+  if(f){
+    $('preview').src=URL.createObjectURL(f);
+    $('preview').style.display='block';
+    $('status').textContent='照片已選取，正在自動開始 OCR……';
+    runOCR();
+  }
+};
+$('clearBtn').onclick=()=>{
+  $('photo').value='';
+  $('preview').style.display='none';
+  $('status').textContent='';
+};
+$('ocrBtn').onclick=runOCR;
+
 $('cancelBtn').onclick=()=>{$('modal').style.display='none'};
 $('saveBtn').onclick=()=>{
   if(!$('f_account').value){alert('請先到「帳戶」新增帳戶，並選擇這筆發票的帳戶。');return}
