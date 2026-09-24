@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="小公主專用記帳本">
+<link rel="icon" type="image/png" sizes="512x512" href="app-icon.png">
+<link rel="apple-touch-icon" href="app-icon.png">
 <title>小公主專用記帳本｜無 Token OCR</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f5f6f8;color:#18202a;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif}
@@ -30,10 +32,13 @@ label{display:block;font-size:13px;color:#626a75;margin:10px 0 5px}
 <header><h1>小公主專用記帳本</h1><div class="sub">手機本機 OCR・無需 API Token</div></header>
 <main>
 <section id="home" class="tab active">
-<div class="card">
-<div class="muted">本月收入</div><div class="kpi" id="income">$0</div>
-<div class="muted" style="margin-top:12px">本月支出</div><div class="kpi" id="expense">$0</div>
-<div class="muted" style="margin-top:12px">本月淨利</div><div class="kpi" id="profit">$0</div>
+<div class="card" id="homeSummaryCard" style="text-align:center;padding:22px 16px;">
+<div class="muted">💰 全部帳戶總金額</div>
+<div id="homeTotalBalance" class="kpi" style="font-size:36px;margin-top:8px;">$0</div>
+<div class="muted" style="margin-top:5px">所有實際帳戶目前的總餘額</div>
+</div>
+<div class="card" id="homeAccountsCard"><h3>🏦 我的帳戶</h3>
+<div id="homeAccountList" style="margin-top:4px"></div>
 </div>
 <div class="card"><h3>新增帳務</h3>
 <p class="muted">可自行新增收入或支出明細，不需要拍發票。</p>
@@ -89,15 +94,17 @@ const $=id=>document.getElementById(id);
 function money(n){return new Intl.NumberFormat('zh-TW',{style:'currency',currency:'TWD',maximumFractionDigits:0}).format(n||0)}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function save(){localStorage.setItem(KEY,JSON.stringify(txs));render()}
-function render(){let inc=0,exp=0;txs.forEach(t=>t.type==='income'?inc+=+t.amount:exp+=+t.amount);
-$('income').textContent=money(inc);$('expense').textContent=money(exp);$('profit').textContent=money(inc-exp);
+function currentMonthKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+function transactionMonthKey(t){const raw=String(t.date||'').trim();const m=raw.match(/^(\d{4})[-\/.](\d{1,2})/);return m?m[1]+'-'+String(m[2]).padStart(2,'0'):''}
+function render(){let inc=0,exp=0;
 $('tx').innerHTML=txs.length?txs.slice().reverse().map(t=>`<div class="item"><div style="flex:1"><b>${esc(t.store||t.description||'帳務')}</b><div class="muted">${esc(t.date||'')} ${esc(t.store||t.description||'')} ${t.payment?`｜${esc(t.payment)}`:''} ${t.account?`｜${esc(t.account)}`:''}</div>${t.note?`<div class="muted">${esc(t.note)}</div>`:''}</div><div style="text-align:right;margin-left:10px"><div class="${t.type==='income'?'green':'red'}">${t.type==='income'?'+':'-'}${money(t.amount)}</div><button class="secondary editTx" data-id="${t.id}" style="padding:6px 9px;font-size:12px;margin-top:5px">編輯</button><button class="secondary deleteTx" data-id="${t.id}" style="padding:6px 9px;font-size:12px;margin-top:5px">刪除</button></div></div>`).join(''):'<div class="muted">尚無交易</div>';
 document.querySelectorAll('.editTx').forEach(b=>b.onclick=()=>{
   const item=txs.find(t=>String(t.id)===String(b.dataset.id));
   if(item) openEntry(item.type,item);
 });
 document.querySelectorAll('.deleteTx').forEach(b=>b.onclick=()=>deleteTx(b.dataset.id));
-$('report').innerHTML=`<div class="item"><span>收入</span><b>${money(inc)}</b></div><div class="item"><span>支出</span><b>${money(exp)}</b></div><div class="item"><span>淨利</span><b>${money(inc-exp)}</b></div>`;const groups={};txs.forEach(t=>{const k=(t.payment||'未設定')+'｜'+(t.account||'未設定');groups[k]=(groups[k]||0)+(t.type==='income'?+t.amount:-+t.amount)});$('accountReport').innerHTML=Object.entries(groups).map(([k,v])=>`<div class="item"><span>${esc(k)}</span><b class="${v>=0?'green':'red'}">${v>=0?'+':''}${money(v)}</b></div>`).join('')||'<div class="muted">尚無資料</div>'}
+const monthKey=currentMonthKey();txs.forEach(t=>{if(transactionMonthKey(t)!==monthKey)return;if(t.type==='income')inc+=+t.amount;else exp+=+t.amount});
+$('report').innerHTML=`<div class="item"><span>本月收入</span><b class="green">${money(inc)}</b></div><div class="item"><span>本月支出</span><b class="red">${money(exp)}</b></div><div class="item"><span>本月淨利</span><b class="${inc-exp>=0?'green':'red'}">${money(inc-exp)}</b></div>`;const groups={};txs.forEach(t=>{const k=(t.payment||'未設定')+'｜'+(t.account||'未設定');groups[k]=(groups[k]||0)+(t.type==='income'?+t.amount:-+t.amount)});$('accountReport').innerHTML=Object.entries(groups).map(([k,v])=>`<div class="item"><span>${esc(k)}</span><b class="${v>=0?'green':'red'}">${v>=0?'+':''}${money(v)}</b></div>`).join('')||'<div class="muted">尚無資料</div>'; if(typeof renderHomeAccounts==='function') renderHomeAccounts()}
 function classify(store,text){const s=(store+' '+text).toLowerCase();
 if(/7-11|7-eleven|711|全家|familymart|萊爾富|ok mart|全聯|家樂福|超商|餐廳|便當|麥當勞|星巴克|咖啡/.test(s))return'餐費';
 if(/中華電信|台灣大哥大|遠傳|電信|寬頻/.test(s))return'通訊費';
@@ -257,7 +264,7 @@ $('saveEntryBtn').onclick=()=>{
   }
 
   
-  function accountOptions(selected){
+  window.accountOptions = function(selected){
     const accounts = loadAccounts();
     if(!accounts.length){
       return '<option value="">請先到「帳戶」新增帳戶</option>';
@@ -292,6 +299,7 @@ $('saveEntryBtn').onclick=()=>{
     document.getElementById("accountOpening").value = "";
     renderAccounts();
     refreshAccountSelectors();
+    renderHomeAccounts();
   };
 
   window.deleteAccount = function(id){
@@ -301,6 +309,27 @@ $('saveEntryBtn').onclick=()=>{
     if(!confirm("確定要刪除「"+a.name+"」帳戶嗎？")) return;
     saveAccounts(accounts.filter(x=>x.id!==id));
     renderAccounts();
+    refreshAccountSelectors();
+    renderHomeAccounts();
+  };
+
+  window.renderHomeAccounts = function(){
+    const totalBox = document.getElementById("homeTotalBalance");
+    const listBox = document.getElementById("homeAccountList");
+    if(!totalBox || !listBox) return;
+    const accounts = loadAccounts();
+    if(!accounts.length){
+      totalBox.textContent = money(0);
+      listBox.innerHTML = '<div class="muted">目前還沒有帳戶，請到「🏦 帳戶」新增。</div>';
+      return;
+    }
+    let total = 0;
+    const rows = accounts.map(a=>{
+      const bal = balanceFor(a); total += bal;
+      return `<div class="item"><div><strong>${escapeHtml(a.name)}</strong><div class="muted">${escapeHtml(a.type)}</div></div><b class="${bal>=0?'green':'red'}">${money(bal)}</b></div>`;
+    }).join('');
+    totalBox.textContent = money(total);
+    listBox.innerHTML = rows;
   };
 
   window.renderAccounts = function(){
@@ -332,8 +361,8 @@ $('saveEntryBtn').onclick=()=>{
     return String(v).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   }
 
-  window.addEventListener("load", function(){renderAccounts();refreshAccountSelectors();});
-  window.addEventListener("storage", function(){renderAccounts();refreshAccountSelectors();});
+  window.addEventListener("load", function(){renderAccounts();refreshAccountSelectors();renderHomeAccounts();});
+  window.addEventListener("storage", function(){renderAccounts();refreshAccountSelectors();renderHomeAccounts();});
 })();
 
 
