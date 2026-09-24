@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="帳智 AI">
-<title>帳智 AI｜無 Token OCR</title>
+<meta name="apple-mobile-web-app-title" content="小公主專用記帳本">
+<title>小公主專用記帳本｜無 Token OCR</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f5f6f8;color:#18202a;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif}
 header{padding:22px 18px 14px;background:#fff;border-bottom:1px solid #e7e9ed;position:sticky;top:0;z-index:5}
@@ -27,7 +27,7 @@ label{display:block;font-size:13px;color:#626a75;margin:10px 0 5px}
 </style>
 </head>
 <body>
-<header><h1>帳智 AI</h1><div class="sub">手機本機 OCR・無需 API Token</div></header>
+<header><h1>小公主專用記帳本</h1><div class="sub">手機本機 OCR・無需 API Token</div></header>
 <main>
 <section id="home" class="tab active">
 <div class="card">
@@ -47,7 +47,7 @@ label{display:block;font-size:13px;color:#626a75;margin:10px 0 5px}
 <div id="status" class="muted" style="margin-top:10px"></div></div>
 </section>
 <section id="books" class="tab"><div class="card"><h3>帳務</h3><div id="tx"></div></div></section>
-<section id="reports" class="tab"><div class="card"><h3>損益摘要</h3><div id="report"></div></div></section>
+<section id="reports" class="tab"><div class="card"><h3>損益摘要</h3><div id="report"></div></div><div class="card"><h3>付款方式／帳戶</h3><div id="accountReport"></div></div></section>
 <section id="settings" class="tab"><div class="card"><h3>設定</h3><p class="muted">本版本已移除 ScanBills Token。OCR 在裝置端執行。</p>
 <button class="secondary" id="exportBtn">匯出帳務 JSON</button><button class="secondary" id="resetBtn" style="margin-top:8px">清除所有帳務</button></div></section>
 </main>
@@ -57,6 +57,8 @@ label{display:block;font-size:13px;color:#626a75;margin:10px 0 5px}
 <label>日期</label><input id="e_date" type="date">
 <label>明細／項目</label><input id="e_desc" placeholder="例如：客戶付款、購買文具">
 <label>會計分類（可自訂）</label><input id="e_cat" placeholder="例如：銷貨收入、辦公費、材料費">
+<label>付款方式</label><select id="e_payment"><option>現金</option><option>銀行轉帳</option><option>信用卡</option><option>簽帳金融卡</option><option>行動支付</option><option>悠遊卡／一卡通</option><option>其他</option></select>
+<label>帳戶</label><input id="e_account" placeholder="例如：公司銀行、現金、信用卡">
 <label>金額</label><input id="e_amount" type="number" min="0" step="1" placeholder="0">
 <label>稅額</label><input id="e_tax" type="number" min="0" step="1" value="0">
 <label>發票號碼（可不填）</label><input id="e_invoice" placeholder="例如：AB-12345678">
@@ -73,13 +75,13 @@ function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&l
 function save(){localStorage.setItem(KEY,JSON.stringify(txs));render()}
 function render(){let inc=0,exp=0;txs.forEach(t=>t.type==='income'?inc+=+t.amount:exp+=+t.amount);
 $('income').textContent=money(inc);$('expense').textContent=money(exp);$('profit').textContent=money(inc-exp);
-$('tx').innerHTML=txs.length?txs.slice().reverse().map(t=>`<div class="item"><div style="flex:1"><b>${esc(t.category||'未分類')}</b><div class="muted">${esc(t.date||'')} ${esc(t.store||t.description||'')}</div>${t.note?`<div class="muted">${esc(t.note)}</div>`:''}</div><div style="text-align:right;margin-left:10px"><div class="${t.type==='income'?'green':'red'}">${t.type==='income'?'+':'-'}${money(t.amount)}</div><button class="secondary editTx" data-id="${t.id}" style="padding:6px 9px;font-size:12px;margin-top:5px">編輯</button><button class="secondary deleteTx" data-id="${t.id}" style="padding:6px 9px;font-size:12px;margin-top:5px">刪除</button></div></div>`).join(''):'<div class="muted">尚無交易</div>';
+$('tx').innerHTML=txs.length?txs.slice().reverse().map(t=>`<div class="item"><div style="flex:1"><b>${esc(t.category||'未分類')}</b><div class="muted">${esc(t.date||'')} ${esc(t.store||t.description||'')} ${t.payment?`｜${esc(t.payment)}`:''} ${t.account?`｜${esc(t.account)}`:''}</div>${t.note?`<div class="muted">${esc(t.note)}</div>`:''}</div><div style="text-align:right;margin-left:10px"><div class="${t.type==='income'?'green':'red'}">${t.type==='income'?'+':'-'}${money(t.amount)}</div><button class="secondary editTx" data-id="${t.id}" style="padding:6px 9px;font-size:12px;margin-top:5px">編輯</button><button class="secondary deleteTx" data-id="${t.id}" style="padding:6px 9px;font-size:12px;margin-top:5px">刪除</button></div></div>`).join(''):'<div class="muted">尚無交易</div>';
 document.querySelectorAll('.editTx').forEach(b=>b.onclick=()=>{
   const item=txs.find(t=>String(t.id)===String(b.dataset.id));
   if(item) openEntry(item.type,item);
 });
 document.querySelectorAll('.deleteTx').forEach(b=>b.onclick=()=>deleteTx(b.dataset.id));
-$('report').innerHTML=`<div class="item"><span>收入</span><b>${money(inc)}</b></div><div class="item"><span>支出</span><b>${money(exp)}</b></div><div class="item"><span>淨利</span><b>${money(inc-exp)}</b></div>`}
+$('report').innerHTML=`<div class="item"><span>收入</span><b>${money(inc)}</b></div><div class="item"><span>支出</span><b>${money(exp)}</b></div><div class="item"><span>淨利</span><b>${money(inc-exp)}</b></div>`;const groups={};txs.forEach(t=>{const k=(t.payment||'未設定')+'｜'+(t.account||'未設定');groups[k]=(groups[k]||0)+(t.type==='income'?+t.amount:-+t.amount)});$('accountReport').innerHTML=Object.entries(groups).map(([k,v])=>`<div class="item"><span>${esc(k)}</span><b class="${v>=0?'green':'red'}">${v>=0?'+':''}${money(v)}</b></div>`).join('')||'<div class="muted">尚無資料</div>'}
 function classify(store,text){const s=(store+' '+text).toLowerCase();
 if(/7-11|7-eleven|711|全家|familymart|萊爾富|ok mart|全聯|家樂福|超商|餐廳|便當|麥當勞|星巴克|咖啡/.test(s))return'餐費';
 if(/中華電信|台灣大哥大|遠傳|電信|寬頻/.test(s))return'通訊費';
@@ -122,12 +124,14 @@ $('clearBtn').onclick=()=>{$('photo').value='';$('preview').style.display='none'
 $('ocrBtn').onclick=async()=>{const f=$('photo').files[0];if(!f){$('status').textContent='請先拍照或選擇發票照片。';return}
 $('status').textContent='正在手機上辨識，第一次可能需要較久……';$('ocrBtn').disabled=true;
 try{if(!worker)worker=await Tesseract.createWorker('chi_tra+eng');const {data}=await worker.recognize(f);pending=extract(data.text);
-$('form').innerHTML=`<label>店家</label><input id="f_store" value="${esc(pending.store)}"><label>日期</label><input id="f_date" value="${esc(pending.date)}" placeholder="YYYY/MM/DD"><label>發票號碼</label><input id="f_invoice" value="${esc(pending.invoice)}"><label>總計</label><input id="f_total" type="number" value="${pending.total||0}"><label>稅額</label><input id="f_tax" type="number" value="${pending.tax||0}"><label>會計分類</label><select id="f_cat">${['餐費','交通費','通訊費','水電費','租金','軟體／訂閱','廣告費','辦公費','未分類'].map(x=>`<option ${x===pending.category?'selected':''}>${x}</option>`).join('')}</select><p class="muted">OCR 不是百分之百準確，請確認後才入帳。</p><details><summary>查看原始 OCR</summary><pre style="white-space:pre-wrap;font-size:12px">${esc(pending.raw)}</pre></details>`;
+$('form').innerHTML=`<label>店家</label><input id="f_store" value="${esc(pending.store)}"><label>日期</label><input id="f_date" value="${esc(pending.date)}" placeholder="YYYY/MM/DD"><label>發票號碼</label><input id="f_invoice" value="${esc(pending.invoice)}"><label>付款方式</label><select id="f_payment"><option>現金</option><option>銀行轉帳</option><option>信用卡</option><option>簽帳金融卡</option><option>行動支付</option><option>悠遊卡／一卡通</option><option>其他</option></select>
+<label>帳戶</label><input id="f_account" placeholder="例如：公司銀行、現金、信用卡">
+<label>總計</label><input id="f_total" type="number" value="${pending.total||0}"><label>稅額</label><input id="f_tax" type="number" value="${pending.tax||0}"><label>會計分類</label><select id="f_cat">${['餐費','交通費','通訊費','水電費','租金','軟體／訂閱','廣告費','辦公費','未分類'].map(x=>`<option ${x===pending.category?'selected':''}>${x}</option>`).join('')}</select><p class="muted">OCR 不是百分之百準確，請確認後才入帳。</p><details><summary>查看原始 OCR</summary><pre style="white-space:pre-wrap;font-size:12px">${esc(pending.raw)}</pre></details>`;
 $('modal').style.display='flex';$('status').textContent='辨識完成，請確認資料。'}catch(e){$('status').textContent='OCR 失敗：'+e.message}$('ocrBtn').disabled=false};
 $('cancelBtn').onclick=()=>{$('modal').style.display='none'};
-$('saveBtn').onclick=()=>{txs.push({id:Date.now(),type:'expense',store:$('f_store').value,date:$('f_date').value,invoice:$('f_invoice').value,amount:+$('f_total').value||0,tax:+$('f_tax').value||0,category:$('f_cat').value,createdAt:new Date().toISOString()});save();$('modal').style.display='none';alert('已入帳')};
+$('saveBtn').onclick=()=>{txs.push({id:Date.now(),type:'expense',store:$('f_store').value,date:$('f_date').value,invoice:$('f_invoice').value,amount:+$('f_total').value||0,tax:+$('f_tax').value||0,category:$('f_cat').value,payment:$('f_payment').value,account:$('f_account').value.trim(),createdAt:new Date().toISOString()});save();$('modal').style.display='none';alert('已入帳')};
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));$(b.dataset.tab).classList.add('active')});
-$('exportBtn').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(txs,null,2)],{type:'application/json'}));a.download='帳智AI_帳務.json';a.click()};
+$('exportBtn').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(txs,null,2)],{type:'application/json'}));a.download='小公主專用記帳本_帳務.json';a.click()};
 $('resetBtn').onclick=()=>{if(confirm('確定清除所有帳務？')){txs=[];save()}}
 let editingId=null;
 function todayISO(){return new Date().toISOString().slice(0,10)}
@@ -136,10 +140,10 @@ function openEntry(type, item=null){
   const actualType=item?item.type:type;
   $('e_type').value=actualType;
   $('entryTitle').textContent=editingId?(actualType==='income'?'編輯收入':'編輯支出'):(actualType==='income'?'新增收入':'新增支出');
-  $('e_date').value=item?.date||todayISO();
+  $('e_date').value=item?.date||todayISO(); $('e_payment').value=item?.payment||'現金'; $('e_account').value=item?.account||'';
   $('e_desc').value=item?.description||item?.store||'';
   $('e_cat').value=item?.category||'';
-  $('e_amount').value=item?.amount??'';
+  $('e_payment').value=item?.payment||'現金'; $('e_account').value=item?.account||''; $('e_amount').value=item?.amount??'';
   $('e_tax').value=item?.tax??0;
   $('e_invoice').value=item?.invoice||'';
   $('e_note').value=item?.note||'';
@@ -173,6 +177,8 @@ $('saveEntryBtn').onclick=()=>{
     amount,
     tax:Number($('e_tax').value)||0,
     category:cat,
+    payment:$('e_payment').value,
+    account:$('e_account').value.trim(),
     note:$('e_note').value.trim()
   };
   if(editingId!==null){
