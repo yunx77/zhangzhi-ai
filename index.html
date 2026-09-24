@@ -50,15 +50,31 @@ label{display:block;font-size:13px;color:#626a75;margin:10px 0 5px}
 <section id="reports" class="tab"><div class="card"><h3>損益摘要</h3><div id="report"></div></div><div class="card"><h3>付款方式／帳戶</h3><div id="accountReport"></div></div></section>
 <section id="settings" class="tab"><div class="card"><h3>設定</h3><p class="muted">本版本已移除 ScanBills Token。OCR 在裝置端執行。</p>
 <button class="secondary" id="exportBtn">匯出帳務 JSON</button><button class="secondary" id="resetBtn" style="margin-top:8px">清除所有帳務</button></div></section>
+
+<section id="account-management" class="tab"><div class="card"><h3>🏦 帳戶管理</h3>
+<div style="max-width:700px;margin:0 auto;padding:16px;border:1px solid #ddd;border-radius:16px;background:#fff;">
+  <h2 style="margin-top:0;">🏦 帳戶管理</h2>
+  <p style="color:#666;">管理現金、銀行、信用卡與其他帳戶。帳戶餘額會與「帳務」中的實際收入／支出同步：期初餘額＋收入－支出。</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+    <input id="accountName" placeholder="帳戶名稱，例如：玉山銀行" style="padding:10px;flex:1;min-width:180px;">
+    <select id="accountType" style="padding:10px;">
+      <option>現金</option><option>銀行</option><option>信用卡</option><option>行動支付</option><option>其他</option>
+    </select>
+    <input id="accountOpening" type="number" step="0.01" placeholder="期初餘額" style="padding:10px;width:130px;">
+    <button type="button" onclick="addAccount()" style="padding:10px 14px;">＋新增帳戶</button>
+  </div>
+  <div id="accountList"></div>
+</div></div></section>
 </main>
-<nav><button class="active" data-tab="home">首頁</button><button data-tab="books">帳務</button><button data-tab="reports">報表</button><button data-tab="settings">設定</button></nav>
+<nav><button class="active" data-tab="home">首頁</button><button data-tab="books">帳務</button><button data-tab="reports">報表</button>
+<button data-tab="account-management">🏦 帳戶</button>
+<button data-tab="settings">設定</button></nav>
 <div class="modal" id="entryModal"><div class="sheet"><h3 id="entryTitle">新增帳務</h3>
 <label>類型</label><select id="e_type"><option value="income">收入</option><option value="expense">支出</option></select>
 <label>日期</label><input id="e_date" type="date">
 <label>明細／項目</label><input id="e_desc" placeholder="例如：客戶付款、購買文具">
-<label>會計分類（可自訂）</label><input id="e_cat" placeholder="例如：銷貨收入、辦公費、材料費">
 <label>付款方式</label><select id="e_payment"><option>現金</option><option>銀行轉帳</option><option>信用卡</option><option>簽帳金融卡</option><option>行動支付</option><option>悠遊卡／一卡通</option><option>其他</option></select>
-<label>帳戶</label><input id="e_account" placeholder="例如：公司銀行、現金、信用卡">
+<label>帳戶</label><select id="e_account"></select>
 <label>金額</label><input id="e_amount" type="number" min="0" step="1" placeholder="0">
 <label>稅額</label><input id="e_tax" type="number" min="0" step="1" value="0">
 <label>發票號碼（可不填）</label><input id="e_invoice" placeholder="例如：AB-12345678">
@@ -75,7 +91,7 @@ function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&l
 function save(){localStorage.setItem(KEY,JSON.stringify(txs));render()}
 function render(){let inc=0,exp=0;txs.forEach(t=>t.type==='income'?inc+=+t.amount:exp+=+t.amount);
 $('income').textContent=money(inc);$('expense').textContent=money(exp);$('profit').textContent=money(inc-exp);
-$('tx').innerHTML=txs.length?txs.slice().reverse().map(t=>`<div class="item"><div style="flex:1"><b>${esc(t.category||'未分類')}</b><div class="muted">${esc(t.date||'')} ${esc(t.store||t.description||'')} ${t.payment?`｜${esc(t.payment)}`:''} ${t.account?`｜${esc(t.account)}`:''}</div>${t.note?`<div class="muted">${esc(t.note)}</div>`:''}</div><div style="text-align:right;margin-left:10px"><div class="${t.type==='income'?'green':'red'}">${t.type==='income'?'+':'-'}${money(t.amount)}</div><button class="secondary editTx" data-id="${t.id}" style="padding:6px 9px;font-size:12px;margin-top:5px">編輯</button><button class="secondary deleteTx" data-id="${t.id}" style="padding:6px 9px;font-size:12px;margin-top:5px">刪除</button></div></div>`).join(''):'<div class="muted">尚無交易</div>';
+$('tx').innerHTML=txs.length?txs.slice().reverse().map(t=>`<div class="item"><div style="flex:1"><b>${esc(t.store||t.description||'帳務')}</b><div class="muted">${esc(t.date||'')} ${esc(t.store||t.description||'')} ${t.payment?`｜${esc(t.payment)}`:''} ${t.account?`｜${esc(t.account)}`:''}</div>${t.note?`<div class="muted">${esc(t.note)}</div>`:''}</div><div style="text-align:right;margin-left:10px"><div class="${t.type==='income'?'green':'red'}">${t.type==='income'?'+':'-'}${money(t.amount)}</div><button class="secondary editTx" data-id="${t.id}" style="padding:6px 9px;font-size:12px;margin-top:5px">編輯</button><button class="secondary deleteTx" data-id="${t.id}" style="padding:6px 9px;font-size:12px;margin-top:5px">刪除</button></div></div>`).join(''):'<div class="muted">尚無交易</div>';
 document.querySelectorAll('.editTx').forEach(b=>b.onclick=()=>{
   const item=txs.find(t=>String(t.id)===String(b.dataset.id));
   if(item) openEntry(item.type,item);
@@ -125,14 +141,18 @@ $('ocrBtn').onclick=async()=>{const f=$('photo').files[0];if(!f){$('status').tex
 $('status').textContent='正在手機上辨識，第一次可能需要較久……';$('ocrBtn').disabled=true;
 try{if(!worker)worker=await Tesseract.createWorker('chi_tra+eng');const {data}=await worker.recognize(f);pending=extract(data.text);
 $('form').innerHTML=`<label>店家</label><input id="f_store" value="${esc(pending.store)}"><label>日期</label><input id="f_date" value="${esc(pending.date)}" placeholder="YYYY/MM/DD"><label>發票號碼</label><input id="f_invoice" value="${esc(pending.invoice)}"><label>付款方式</label><select id="f_payment"><option>現金</option><option>銀行轉帳</option><option>信用卡</option><option>簽帳金融卡</option><option>行動支付</option><option>悠遊卡／一卡通</option><option>其他</option></select>
-<label>帳戶</label><input id="f_account" placeholder="例如：公司銀行、現金、信用卡">
-<label>總計</label><input id="f_total" type="number" value="${pending.total||0}"><label>稅額</label><input id="f_tax" type="number" value="${pending.tax||0}"><label>會計分類</label><select id="f_cat">${['餐費','交通費','通訊費','水電費','租金','軟體／訂閱','廣告費','辦公費','未分類'].map(x=>`<option ${x===pending.category?'selected':''}>${x}</option>`).join('')}</select><p class="muted">OCR 不是百分之百準確，請確認後才入帳。</p><details><summary>查看原始 OCR</summary><pre style="white-space:pre-wrap;font-size:12px">${esc(pending.raw)}</pre></details>`;
-$('modal').style.display='flex';$('status').textContent='辨識完成，請確認資料。'}catch(e){$('status').textContent='OCR 失敗：'+e.message}$('ocrBtn').disabled=false};
+<label>帳戶</label><select id="f_account"></select>
+<label>總計</label><input id="f_total" type="number" value="${pending.total||0}"><label>稅額</label><input id="f_tax" type="number" value="${pending.tax||0}"><p class="muted">OCR 不是百分之百準確，請確認後才入帳。</p><details><summary>查看原始 OCR</summary><pre style="white-space:pre-wrap;font-size:12px">${esc(pending.raw)}</pre></details>`;
+$('modal').style.display='flex';
+refreshAccountSelectors();
+$('status').textContent='辨識完成，請確認資料。'}catch(e){$('status').textContent='OCR 失敗：'+e.message}$('ocrBtn').disabled=false};
 $('cancelBtn').onclick=()=>{$('modal').style.display='none'};
-$('saveBtn').onclick=()=>{txs.push({id:Date.now(),type:'expense',store:$('f_store').value,date:$('f_date').value,invoice:$('f_invoice').value,amount:+$('f_total').value||0,tax:+$('f_tax').value||0,category:$('f_cat').value,payment:$('f_payment').value,account:$('f_account').value.trim(),createdAt:new Date().toISOString()});save();$('modal').style.display='none';alert('已入帳')};
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));$(b.dataset.tab).classList.add('active')});
+$('saveBtn').onclick=()=>{
+  if(!$('f_account').value){alert('請先到「帳戶」新增帳戶，並選擇這筆發票的帳戶。');return}
+  txs.push({id:Date.now(),type:'expense',store:$('f_store').value,date:$('f_date').value,invoice:$('f_invoice').value,amount:+$('f_total').value||0,tax:+$('f_tax').value||0,payment:$('f_payment').value,account:$('f_account').value,createdAt:new Date().toISOString()});save();$('modal').style.display='none';alert('已入帳')};
+document.querySelectorAll('nav button[data-tab]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('nav button[data-tab]').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));const target=$(b.dataset.tab);if(target)target.classList.add('active');if(b.dataset.tab==='account-management'&&typeof renderAccounts==='function'){renderAccounts();refreshAccountSelectors();}}));
 $('exportBtn').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(txs,null,2)],{type:'application/json'}));a.download='小公主專用記帳本_帳務.json';a.click()};
-$('resetBtn').onclick=()=>{if(confirm('確定清除所有帳務？')){txs=[];save()}}
+$('resetBtn').onclick=()=>{if(confirm('確定清除所有帳務？')){txs=[];save();if(typeof renderAccounts==='function')renderAccounts()}}
 let editingId=null;
 function todayISO(){return new Date().toISOString().slice(0,10)}
 function openEntry(type, item=null){
@@ -142,8 +162,9 @@ function openEntry(type, item=null){
   $('entryTitle').textContent=editingId?(actualType==='income'?'編輯收入':'編輯支出'):(actualType==='income'?'新增收入':'新增支出');
   $('e_date').value=item?.date||todayISO(); $('e_payment').value=item?.payment||'現金'; $('e_account').value=item?.account||'';
   $('e_desc').value=item?.description||item?.store||'';
-  $('e_cat').value=item?.category||'';
-  $('e_payment').value=item?.payment||'現金'; $('e_account').value=item?.account||''; $('e_amount').value=item?.amount??'';
+  $('e_payment').value=item?.payment||'現金';
+  $('e_account').innerHTML = accountOptions(item?.account||'');
+  $('e_amount').value=item?.amount??'';
   $('e_tax').value=item?.tax??0;
   $('e_invoice').value=item?.invoice||'';
   $('e_note').value=item?.note||'';
@@ -164,10 +185,10 @@ $('e_type').onchange=()=>{$('entryTitle').textContent=$('e_type').value==='incom
 $('saveEntryBtn').onclick=()=>{
   const amount=Number($('e_amount').value);
   const desc=$('e_desc').value.trim();
-  const cat=$('e_cat').value.trim();
+  const account=$('e_account').value;
   if(!amount || amount<0){alert('請輸入正確金額');return}
   if(!desc){alert('請輸入明細／項目');return}
-  if(!cat){alert('請輸入會計分類');return}
+  if(!account){alert('請先選擇帳戶');return}
   const data={
     type:$('e_type').value,
     store:desc,
@@ -176,9 +197,8 @@ $('saveEntryBtn').onclick=()=>{
     invoice:$('e_invoice').value.trim(),
     amount,
     tax:Number($('e_tax').value)||0,
-    category:cat,
     payment:$('e_payment').value,
-    account:$('e_account').value.trim(),
+    account:account,
     note:$('e_note').value.trim()
   };
   if(editingId!==null){
@@ -196,4 +216,127 @@ $('saveEntryBtn').onclick=()=>{
   }
 };
 ;render();
+
+
+// === 小公主專用記帳本：帳戶管理 ===
+(function(){
+  const ACCOUNT_KEY = "princess_account_list_v1";
+
+  function loadAccounts(){
+    try { return JSON.parse(localStorage.getItem(ACCOUNT_KEY) || "[]"); }
+    catch(e){ return []; }
+  }
+  function saveAccounts(a){ localStorage.setItem(ACCOUNT_KEY, JSON.stringify(a)); }
+
+  function loadTransactions(){
+    return Array.isArray(txs) ? txs : [];
+  }
+
+  function amountOf(t){
+    const v = Number(t.amount ?? t.total ?? t.金額 ?? 0);
+    return isFinite(v) ? v : 0;
+  }
+
+  function accountOf(t){
+    return String(t.account ?? t.accountName ?? t.帳戶 ?? t.帳戶名稱 ?? "").trim();
+  }
+
+  function typeOf(t){
+    return String(t.type ?? t.kind ?? t.類型 ?? t.收支 ?? "").toLowerCase();
+  }
+
+  function balanceFor(a){
+    let bal = Number(a.opening) || 0;
+    for(const t of loadTransactions()){
+      if(accountOf(t) !== a.name) continue;
+      const amount = amountOf(t);
+      if(t.type === 'income') bal += amount;
+      if(t.type === 'expense') bal -= amount;
+    }
+    return bal;
+  }
+
+  
+  function accountOptions(selected){
+    const accounts = loadAccounts();
+    if(!accounts.length){
+      return '<option value="">請先到「帳戶」新增帳戶</option>';
+    }
+    return '<option value="">請選擇帳戶</option>' + accounts.map(a =>
+      '<option value="'+escapeAttr(a.name)+'" '+(a.name===selected?'selected':'')+'>'+escapeHtml(a.name)+'（'+escapeHtml(a.type)+'）</option>'
+    ).join('');
+  }
+  function escapeHtml(v){
+    return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+  function escapeAttr(v){
+    return String(v??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  window.refreshAccountSelectors = function(selectedE, selectedF){
+    const e = document.getElementById('e_account');
+    const f = document.getElementById('f_account');
+    if(e) e.innerHTML = accountOptions(selectedE || e.value);
+    if(f) f.innerHTML = accountOptions(selectedF || f.value);
+  }
+
+  window.addAccount = function(){
+    const name = document.getElementById("accountName").value.trim();
+    const type = document.getElementById("accountType").value;
+    const opening = Number(document.getElementById("accountOpening").value || 0);
+    if(!name){ alert("請先輸入帳戶名稱"); return; }
+    const accounts = loadAccounts();
+    if(accounts.some(a => a.name === name)){ alert("已有相同名稱的帳戶"); return; }
+    accounts.push({id:Date.now().toString(), name, type, opening});
+    saveAccounts(accounts);
+    document.getElementById("accountName").value = "";
+    document.getElementById("accountOpening").value = "";
+    renderAccounts();
+    refreshAccountSelectors();
+  };
+
+  window.deleteAccount = function(id){
+    const accounts = loadAccounts();
+    const a = accounts.find(x=>x.id===id);
+    if(!a) return;
+    if(!confirm("確定要刪除「"+a.name+"」帳戶嗎？")) return;
+    saveAccounts(accounts.filter(x=>x.id!==id));
+    renderAccounts();
+  };
+
+  window.renderAccounts = function(){
+    const box = document.getElementById("accountList");
+    if(!box) return;
+    const accounts = loadAccounts();
+    if(!accounts.length){
+      box.innerHTML = '<div style="padding:12px;color:#777;">目前還沒有帳戶，請先新增一個。</div>';
+      return;
+    }
+    box.innerHTML = accounts.map(a=>{
+      let income=0, expense=0;
+      loadTransactions().forEach(t=>{
+        if(accountOf(t)!==a.name) return;
+        if(t.type==='income') income += amountOf(t);
+        if(t.type==='expense') expense += amountOf(t);
+      });
+      const bal = balanceFor(a);
+      const sign = bal < 0 ? "-" : "";
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid #eee;flex-wrap:wrap;">
+        <div><strong>${escapeHtml(a.name)}</strong><div style="font-size:13px;color:#777;">${escapeHtml(a.type)}｜期初 ${Number(a.opening||0).toLocaleString()}｜收入 ${income.toLocaleString()}｜支出 ${expense.toLocaleString()}</div></div>
+        <div style="font-weight:700;">餘額 ${sign}$${Math.abs(bal).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:2})}</div>
+        <button type="button" onclick="deleteAccount('${a.id}')" style="padding:7px 10px;">刪除</button>
+      </div>`;
+    }).join('');
+  };
+
+  function escapeHtml(v){
+    return String(v).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+
+  window.addEventListener("load", function(){renderAccounts();refreshAccountSelectors();});
+  window.addEventListener("storage", function(){renderAccounts();refreshAccountSelectors();});
+})();
+
+
+
+
 </script></body></html>
