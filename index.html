@@ -9,23 +9,29 @@
 <link rel="apple-touch-icon" href="app-icon.png">
 <title>小公主專用記帳本｜無 Token OCR</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f5f6f8;color:#18202a;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif}
+*{box-sizing:border-box}body{margin:0;background:#FFF7D6;color:#18202a;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif}
 header{padding:22px 18px 14px;background:#fff;border-bottom:1px solid #e7e9ed;position:sticky;top:0;z-index:5}
 h1{margin:0;font-size:25px}.sub,.muted{color:#68707c;font-size:13px}.sub{margin-top:5px}
 main{padding:16px 16px 90px;max-width:720px;margin:auto}.card{background:#fff;border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 2px 12px #0000000b}
 .kpi{font-size:28px;font-weight:750;margin-top:5px}
-button{border:0;border-radius:13px;padding:13px 15px;font-size:16px;background:#111827;color:#fff;font-weight:650}
-button.secondary{background:#eef0f3;color:#202630}.row{display:flex;gap:9px;flex-wrap:wrap}.row>*{flex:1}
+button{border:0;border-radius:13px;padding:13px 15px;font-size:16px;background:#A8793E;color:#fff;font-weight:650}
+button.secondary{background:#E8D3A8;color:#5B4528}.row{display:flex;gap:9px;flex-wrap:wrap}.row>*{flex:1}
 input,select{width:100%;padding:12px;border:1px solid #d9dde4;border-radius:11px;font-size:16px;background:#fff}
 nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;display:flex;z-index:10}
 nav button{flex:1;border-radius:0;background:#fff;color:#626a75;font-size:13px;padding:12px 4px}
-nav button.active{color:#111827;font-weight:750}.tab{display:none}.tab.active{display:block}
+nav button.active{color:#A8793E;font-weight:750}.tab{display:none}.tab.active{display:block}
 .preview{width:100%;max-height:300px;object-fit:contain;border-radius:12px;background:#f0f1f3;margin-top:10px}
 .item{display:flex;justify-content:space-between;align-items:flex-start;padding:12px 0;border-bottom:1px solid #eee}.item:last-child{border:0}
 .green{color:#14804a}.red{color:#c23b3b}
 .modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;z-index:20}
 .sheet{background:#fff;width:100%;border-radius:22px 22px 0 0;padding:18px;max-height:88vh;overflow:auto}
 label{display:block;font-size:13px;color:#626a75;margin:10px 0 5px}
+
+/* 小公主記帳本配色：淺黃頁面＋土黃色按鈕 */
+body{background:#FFF7D6}
+button:not(.secondary){background:#A8793E;color:#fff}
+nav button,nav button:not(.secondary){background:#fff;color:#626a75}
+nav button.active{color:#A8793E}
 </style>
 </head>
 <body>
