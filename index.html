@@ -73,7 +73,11 @@ function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&l
 function save(){localStorage.setItem(KEY,JSON.stringify(txs));render()}
 function render(){let inc=0,exp=0;txs.forEach(t=>t.type==='income'?inc+=+t.amount:exp+=+t.amount);
 $('income').textContent=money(inc);$('expense').textContent=money(exp);$('profit').textContent=money(inc-exp);
-$('tx').innerHTML=txs.length?txs.slice().reverse().map(t=>`<div class="item"><div style="flex:1"><b>${esc(t.category||'未分類')}</b><div class="muted">${esc(t.date||'')} ${esc(t.store||t.description||'')}</div>${t.note?`<div class="muted">${esc(t.note)}</div>`:''}</div><div style="text-align:right;margin-left:10px"><div class="${t.type==='income'?'green':'red'}">${t.type==='income'?'+':'-'}${money(t.amount)}</div><button class="secondary deleteTx" data-id="${t.id}" style="padding:6px 9px;font-size:12px;margin-top:5px">刪除</button></div></div>`).join(''):'<div class="muted">尚無交易</div>';
+$('tx').innerHTML=txs.length?txs.slice().reverse().map(t=>`<div class="item"><div style="flex:1"><b>${esc(t.category||'未分類')}</b><div class="muted">${esc(t.date||'')} ${esc(t.store||t.description||'')}</div>${t.note?`<div class="muted">${esc(t.note)}</div>`:''}</div><div style="text-align:right;margin-left:10px"><div class="${t.type==='income'?'green':'red'}">${t.type==='income'?'+':'-'}${money(t.amount)}</div><button class="secondary editTx" data-id="${t.id}" style="padding:6px 9px;font-size:12px;margin-top:5px">編輯</button><button class="secondary deleteTx" data-id="${t.id}" style="padding:6px 9px;font-size:12px;margin-top:5px">刪除</button></div></div>`).join(''):'<div class="muted">尚無交易</div>';
+document.querySelectorAll('.editTx').forEach(b=>b.onclick=()=>{
+  const item=txs.find(t=>String(t.id)===String(b.dataset.id));
+  if(item) openEntry(item.type,item);
+});
 document.querySelectorAll('.deleteTx').forEach(b=>b.onclick=()=>deleteTx(b.dataset.id));
 $('report').innerHTML=`<div class="item"><span>收入</span><b>${money(inc)}</b></div><div class="item"><span>支出</span><b>${money(exp)}</b></div><div class="item"><span>淨利</span><b>${money(inc-exp)}</b></div>`}
 function classify(store,text){const s=(store+' '+text).toLowerCase();
@@ -125,12 +129,20 @@ $('saveBtn').onclick=()=>{txs.push({id:Date.now(),type:'expense',store:$('f_stor
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));$(b.dataset.tab).classList.add('active')});
 $('exportBtn').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(txs,null,2)],{type:'application/json'}));a.download='帳智AI_帳務.json';a.click()};
 $('resetBtn').onclick=()=>{if(confirm('確定清除所有帳務？')){txs=[];save()}}
+let editingId=null;
 function todayISO(){return new Date().toISOString().slice(0,10)}
-function openEntry(type){
-  $('e_type').value=type;
-  $('entryTitle').textContent=type==='income'?'新增收入':'新增支出';
-  $('e_date').value=todayISO();
-  $('e_desc').value=''; $('e_cat').value=''; $('e_amount').value=''; $('e_tax').value='0'; $('e_invoice').value=''; $('e_note').value='';
+function openEntry(type, item=null){
+  editingId=item?item.id:null;
+  const actualType=item?item.type:type;
+  $('e_type').value=actualType;
+  $('entryTitle').textContent=editingId?(actualType==='income'?'編輯收入':'編輯支出'):(actualType==='income'?'新增收入':'新增支出');
+  $('e_date').value=item?.date||todayISO();
+  $('e_desc').value=item?.description||item?.store||'';
+  $('e_cat').value=item?.category||'';
+  $('e_amount').value=item?.amount??'';
+  $('e_tax').value=item?.tax??0;
+  $('e_invoice').value=item?.invoice||'';
+  $('e_note').value=item?.note||'';
   $('entryModal').style.display='flex';
 }
 function deleteTx(id){
@@ -143,7 +155,7 @@ function deleteTx(id){
 }
 $('addIncomeBtn').onclick=()=>openEntry('income');
 $('addExpenseBtn').onclick=()=>openEntry('expense');
-$('cancelEntryBtn').onclick=()=>$('entryModal').style.display='none';
+$('cancelEntryBtn').onclick=()=>{editingId=null;$('entryModal').style.display='none'};
 $('e_type').onchange=()=>{$('entryTitle').textContent=$('e_type').value==='income'?'新增收入':'新增支出'};
 $('saveEntryBtn').onclick=()=>{
   const amount=Number($('e_amount').value);
@@ -152,8 +164,7 @@ $('saveEntryBtn').onclick=()=>{
   if(!amount || amount<0){alert('請輸入正確金額');return}
   if(!desc){alert('請輸入明細／項目');return}
   if(!cat){alert('請輸入會計分類');return}
-  txs.push({
-    id:Date.now(),
+  const data={
     type:$('e_type').value,
     store:desc,
     description:desc,
@@ -162,12 +173,21 @@ $('saveEntryBtn').onclick=()=>{
     amount,
     tax:Number($('e_tax').value)||0,
     category:cat,
-    note:$('e_note').value.trim(),
-    createdAt:new Date().toISOString()
-  });
-  save();
-  $('entryModal').style.display='none';
-  alert('已新增並入帳');
+    note:$('e_note').value.trim()
+  };
+  if(editingId!==null){
+    const idx=txs.findIndex(t=>String(t.id)===String(editingId));
+    if(idx>=0) txs[idx]={...txs[idx],...data};
+    editingId=null;
+    save();
+    $('entryModal').style.display='none';
+    alert('已修改帳務');
+  }else{
+    txs.push({...data,id:Date.now(),createdAt:new Date().toISOString()});
+    save();
+    $('entryModal').style.display='none';
+    alert('已新增並入帳');
+  }
 };
 ;render();
 </script></body></html>
