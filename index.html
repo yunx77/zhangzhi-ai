@@ -3,191 +3,91 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#4f46e5">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="帳智 AI">
-<title>帳智 AI｜拍發票自動記帳</title>
+<title>帳智 AI｜無 Token OCR</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif;background:#f5f6fa;color:#171717}
-header{padding:18px 18px 10px;background:#fff;position:sticky;top:0;z-index:2}.brand{font-size:25px;font-weight:800}.sub{color:#777;font-size:13px;margin-top:3px}
-main{padding:14px 16px 100px;max-width:720px;margin:auto}.card{background:#fff;border-radius:18px;padding:18px;margin:10px 0;box-shadow:0 2px 12px #0000000b}
-.hero{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:white}.hero .label{opacity:.8}.profit{font-size:36px;font-weight:800;margin:6px 0 16px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{background:#ffffff1a;border-radius:14px;padding:12px}.metric b{display:block;font-size:20px;margin-top:3px}
-button{border:0;border-radius:13px;padding:13px 15px;font-weight:700;font-size:15px;cursor:pointer}.primary{background:#4f46e5;color:#fff}.secondary{background:#eef0ff;color:#3730a3}.danger{background:#fee2e2;color:#991b1b}.success{background:#dcfce7;color:#166534}
-.nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;display:flex;justify-content:center;z-index:5}.nav button{flex:1;max-width:180px;background:#fff;color:#666;border-radius:0;padding:12px 4px}.nav button.active{color:#4f46e5}
-.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #eee}.row:last-child{border-bottom:0}.income{color:#16803c}.expense{color:#c62828}.small{font-size:13px;color:#777}
-input,select,textarea{width:100%;padding:13px;border:1px solid #ddd;border-radius:12px;font-size:16px;background:#fff;margin:6px 0 12px}
-.actions{display:flex;gap:8px;flex-wrap:wrap}.empty{text-align:center;color:#777;padding:35px 10px}
-.modal{position:fixed;inset:0;background:#0007;display:none;align-items:flex-end;z-index:10}.sheet{background:#fff;border-radius:22px 22px 0 0;padding:20px;width:100%;max-height:92vh;overflow:auto}.modal.show{display:flex}
-.preview{width:100%;max-height:230px;object-fit:contain;border-radius:14px;background:#eee;margin:8px 0 15px}
-h2{margin:4px 0 14px}h3{margin-bottom:6px}.badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#f1f5f9;font-size:12px;margin:2px}.pending{background:#fff7ed;color:#9a3412}
-.toast{position:fixed;left:50%;bottom:85px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:999px;display:none;z-index:20;max-width:90%;text-align:center}
-.notice{padding:12px;border-radius:12px;background:#fff7ed;color:#9a3412;font-size:13px;line-height:1.6}.ok{background:#ecfdf5;color:#166534}.dangerText{color:#b91c1c}
-hr{border:0;border-top:1px solid #eee;margin:16px 0}
+*{box-sizing:border-box}body{margin:0;background:#f5f6f8;color:#18202a;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif}
+header{padding:22px 18px 14px;background:#fff;border-bottom:1px solid #e7e9ed;position:sticky;top:0;z-index:5}
+h1{margin:0;font-size:25px}.sub,.muted{color:#68707c;font-size:13px}.sub{margin-top:5px}
+main{padding:16px 16px 90px;max-width:720px;margin:auto}.card{background:#fff;border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 2px 12px #0000000b}
+.kpi{font-size:28px;font-weight:750;margin-top:5px}
+button{border:0;border-radius:13px;padding:13px 15px;font-size:16px;background:#111827;color:#fff;font-weight:650}
+button.secondary{background:#eef0f3;color:#202630}.row{display:flex;gap:9px;flex-wrap:wrap}.row>*{flex:1}
+input,select{width:100%;padding:12px;border:1px solid #d9dde4;border-radius:11px;font-size:16px;background:#fff}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;display:flex;z-index:10}
+nav button{flex:1;border-radius:0;background:#fff;color:#626a75;font-size:13px;padding:12px 4px}
+nav button.active{color:#111827;font-weight:750}.tab{display:none}.tab.active{display:block}
+.preview{width:100%;max-height:300px;object-fit:contain;border-radius:12px;background:#f0f1f3;margin-top:10px}
+.item{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #eee}.item:last-child{border:0}
+.green{color:#14804a}.red{color:#c23b3b}
+.modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;z-index:20}
+.sheet{background:#fff;width:100%;border-radius:22px 22px 0 0;padding:18px;max-height:88vh;overflow:auto}
+label{display:block;font-size:13px;color:#626a75;margin:10px 0 5px}
 </style>
 </head>
 <body>
-<header><div class="brand">帳智 AI</div><div class="sub">拍發票 → OCR → AI 分類 → 自動產生記帳</div></header>
-<main id="app"></main>
-<div class="nav">
-<button id="n0" onclick="page('home')">🏠<br>首頁</button>
-<button id="n1" onclick="page('tx')">🧾<br>帳務</button>
-<button id="n2" onclick="page('report')">📊<br>報表</button>
-<button id="n3" onclick="page('settings')">⚙️<br>設定</button>
+<header><h1>帳智 AI</h1><div class="sub">手機本機 OCR・無需 API Token</div></header>
+<main>
+<section id="home" class="tab active">
+<div class="card">
+<div class="muted">本月收入</div><div class="kpi" id="income">$0</div>
+<div class="muted" style="margin-top:12px">本月支出</div><div class="kpi" id="expense">$0</div>
+<div class="muted" style="margin-top:12px">本月淨利</div><div class="kpi" id="profit">$0</div>
 </div>
-<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
-<div class="toast" id="toast"></div>
-
+<div class="card"><h3>拍發票自動記帳</h3>
+<p class="muted">照片直接在手機瀏覽器進行 OCR，不需要 ScanBills Token。</p>
+<label>選擇發票照片</label><input id="photo" type="file" accept="image/*" capture="environment">
+<img id="preview" class="preview" style="display:none">
+<div class="row" style="margin-top:10px"><button id="ocrBtn">開始 OCR</button><button class="secondary" id="clearBtn">清除</button></div>
+<div id="status" class="muted" style="margin-top:10px"></div></div>
+</section>
+<section id="books" class="tab"><div class="card"><h3>帳務</h3><div id="tx"></div></div></section>
+<section id="reports" class="tab"><div class="card"><h3>損益摘要</h3><div id="report"></div></div></section>
+<section id="settings" class="tab"><div class="card"><h3>設定</h3><p class="muted">本版本已移除 ScanBills Token。OCR 在裝置端執行。</p>
+<button class="secondary" id="exportBtn">匯出帳務 JSON</button><button class="secondary" id="resetBtn" style="margin-top:8px">清除所有帳務</button></div></section>
+</main>
+<nav><button class="active" data-tab="home">首頁</button><button data-tab="books">帳務</button><button data-tab="reports">報表</button><button data-tab="settings">設定</button></nav>
+<div class="modal" id="modal"><div class="sheet"><h3>OCR 結果確認</h3><div id="form"></div><div class="row" style="margin-top:15px"><button id="saveBtn">確認入帳</button><button class="secondary" id="cancelBtn">取消</button></div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
-const KEY="zhangzhi_transactions_v2";
-const TOKEN_KEY="zhangzhi_scanbills_token_v1";
-let tx=JSON.parse(localStorage.getItem(KEY)||"null")||[
- {id:1,title:"客戶 A",amount:50000,type:"income",category:"服務收入",date:"2026-09-22",pending:false},
- {id:2,title:"全家便利商店",amount:286,type:"expense",category:"辦公費",date:"2026-09-22",pending:false},
- {id:3,title:"台灣大哥大",amount:2350,type:"expense",category:"通訊費",date:"2026-09-21",pending:false}
-];
-function save(){localStorage.setItem(KEY,JSON.stringify(tx))}
-function money(n){return new Intl.NumberFormat("zh-TW").format(Number(n)||0)}
-function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
-function today(){return new Date().toISOString().slice(0,10)}
-function sums(){return tx.reduce((a,t)=>{a[t.type]+=Number(t.amount)||0;return a},{income:0,expense:0})}
-function page(p){
- document.querySelectorAll(".nav button").forEach((b,i)=>b.classList.toggle("active",["home","tx","report","settings"][i]===p));
- if(p==="home")home(); if(p==="tx")transactions(); if(p==="report")report(); if(p==="settings")settings();
-}
-function home(){
- const s=sums(), pending=tx.filter(x=>x.pending).length;
- app.innerHTML=`<div class="card hero"><div class="label">本月淨利</div><div class="profit">$${money(s.income-s.expense)}</div>
- <div class="grid"><div class="metric">收入<b>$${money(s.income)}</b></div><div class="metric">支出<b>$${money(s.expense)}</b></div></div></div>
- <div class="card"><h2>📷 核心功能</h2><p>拍一張發票，系統會送到 OCR，讀取店家、日期、總額、稅額與統編，再自動建議會計分類。</p>
- <button class="primary" onclick="scan()">📷 拍發票／選照片</button></div>
- <div class="card"><h2>AI 財務提醒</h2><p>目前有 <b>${pending}</b> 筆待確認帳務。</p><p class="small">正式入帳前會先讓你確認 OCR 結果與分類。</p></div>
- <div class="card"><h2>最近帳務</h2>${tx.slice(0,5).map(item).join("")||'<div class="empty">還沒有帳務</div>'}</div>`;
-}
-function item(t){
- return `<div class="row"><div><b>${esc(t.title)}</b><div class="small">${esc(t.date)} · ${esc(t.category||"未分類")} ${t.pending?'<span class="badge pending">待確認</span>':""}</div></div><b class="${t.type}">${t.type==="income"?"+":"-"}$${money(t.amount)}</b></div>`
-}
-function transactions(){
- app.innerHTML=`<div class="card"><h2>所有帳務</h2><div class="actions"><button class="primary" onclick="openAdd('expense')">＋支出</button><button class="secondary" onclick="openAdd('income')">＋收入</button><button class="secondary" onclick="scan()">📷 發票 OCR</button></div></div>
- <div class="card">${tx.map((t,i)=>item(t)+`<div class="actions"><button class="danger" onclick="removeTx(${i})">刪除</button></div>`).join("")||'<div class="empty">還沒有帳務</div>'}</div>`;
-}
-function report(){
- const s=sums(),cats={};tx.filter(t=>t.type==="expense").forEach(t=>cats[t.category||"未分類"]=(cats[t.category||"未分類"]||0)+Number(t.amount||0));
- app.innerHTML=`<div class="card"><h2>損益表</h2>${line("收入",s.income)}${line("支出",s.expense)}${line("淨利",s.income-s.expense)}</div>
- <div class="card"><h2>支出分類</h2>${Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>line(k,v)).join("")||'<div class="empty">尚無支出</div>'}</div>
- <div class="card"><h2>資料備份</h2><button class="secondary" onclick="exportData()">匯出 JSON</button></div>`;
-}
-function line(k,v){return `<div class="row"><span>${esc(k)}</span><b>$${money(v)}</b></div>`}
-function settings(){
- const token=localStorage.getItem(TOKEN_KEY)||"";
- app.innerHTML=`<div class="card"><h2>OCR 設定</h2>
- <div class="notice">本版本使用 ScanBills 的發票辨識 API。官方文件說明可直接上傳 JPEG、PNG、HEIC 等圖片，回傳發票號碼、日期、總計、稅金、買方／賣方統編與店家等結構化欄位。</div>
- <label>ScanBills API Token</label><input id="token" type="password" value="${esc(token)}" placeholder="貼上你的 API Token">
- <div class="actions"><button class="primary" onclick="saveToken()">儲存 Token</button><button class="secondary" onclick="clearToken()">清除</button></div>
- <p class="small">Token 只保存在這台裝置的瀏覽器 localStorage。若要正式商用，建議改成後端代理，不要把 API Token 放在前端。</p>
- </div>
- <div class="card"><h2>目前版本</h2><p>① 拍照／選照片 → ② OCR → ③ 自動分類 → ④ 確認 → ⑤ 寫入帳務</p>
- <p class="small">此版本先完成核心流程；正式會計系統仍需加入雙式簿記、權限、雲端備份、稅務規則與稽核紀錄。</p></div>`;
-}
-function saveToken(){const v=document.getElementById("token").value.trim();if(!v){toast("請輸入 Token");return}localStorage.setItem(TOKEN_KEY,v);toast("OCR Token 已儲存");}
-function clearToken(){localStorage.removeItem(TOKEN_KEY);toast("已清除 Token");page("settings")}
-function openAdd(type){
- showModal(`<h2>新增${type==="income"?"收入":"支出"}</h2><label>名稱</label><input id="aTitle" placeholder="例如：辦公用品">
- <label>金額</label><input id="aAmount" type="number" min="0" step="1">
- <label>分類</label><select id="aCat">${categories(type).map(x=>`<option>${x}</option>`).join("")}</select>
- <label>日期</label><input id="aDate" type="date" value="${today()}"><div class="actions"><button class="primary" onclick="addManual('${type}')">儲存</button><button class="secondary" onclick="closeModal()">取消</button></div>`);
-}
-function categories(type){return type==="income"?["服務收入","銷貨收入","其他收入"]:["餐費","辦公費","交通費","通訊費","租金","水電費","廣告費","軟體／訂閱","進貨","設備","差旅費","未分類"]}
-function addManual(type){
- const title=document.getElementById("aTitle").value.trim()||"未命名", amount=Number(document.getElementById("aAmount").value);
- if(!amount){toast("請輸入金額");return}
- tx.unshift({id:Date.now(),title,amount,type,category:document.getElementById("aCat").value,date:document.getElementById("aDate").value,pending:false});
- save();closeModal();page("tx");toast("已新增帳務");
-}
-function scan(){
- const token=localStorage.getItem(TOKEN_KEY);
- if(!token){showModal(`<h2>先設定 OCR</h2><p>第一次使用發票 OCR，請先到「設定」貼上 ScanBills API Token。</p><button class="primary" onclick="closeModal();page('settings')">前往設定</button>`);return}
- showModal(`<h2>📷 拍發票</h2><p class="small">拍攝清楚、完整的發票或收據；圖片上限依 OCR 服務規格。</p>
- <input id="invoiceFile" type="file" accept="image/jpeg,image/png,image/heic,image/*" capture="environment" onchange="previewAndScan(this)">
- <div id="scanArea"></div><button class="secondary" onclick="closeModal()">取消</button>`);
-}
-function previewAndScan(input){
- const file=input.files&&input.files[0];if(!file)return;
- if(file.size>4.8*1024*1024){toast("圖片超過 4.8 MB，請換一張較小的照片");return}
- const area=document.getElementById("scanArea"), url=URL.createObjectURL(file);
- area.innerHTML=`<img class="preview" src="${url}"><div class="notice">正在 OCR 辨識，請稍候…</div>`;
- doOCR(file);
-}
-async function doOCR(file){
- try{
-  const token=localStorage.getItem(TOKEN_KEY);
-  const fd=new FormData();fd.append("files",file,file.name||"invoice.jpg");
-  const res=await fetch("https://scanbills.com/api/upload",{method:"POST",headers:{"Authorization":"Bearer "+token},body:fd});
-  const text=await res.text();let data={};try{data=JSON.parse(text)}catch(e){}
-  if(!res.ok){throw new Error(data.message||data.error||`OCR API 錯誤 ${res.status}`)}
-  const inv=data?.results?.[0]?.invoices?.[0]||data?.results?.[0]?.data;
-  if(!inv)throw new Error("OCR 沒有辨識到發票資料");
-  openOCRResult(inv,data.creditsRemaining);
- }catch(e){
-  showModal(`<h2>OCR 失敗</h2><div class="notice">${esc(e.message||"無法辨識")}</div><p class="small">請確認 Token、網路與照片清晰度。</p><button class="secondary" onclick="closeModal()">關閉</button>`);
- }
-}
-function normalizeDate(v){
- if(!v)return today();
- const m=String(v).match(/(\\d{4})[\\/-](\\d{1,2})[\\/-](\\d{1,2})/);if(!m)return today();
- return `${m[1]}-${String(m[2]).padStart(2,"0")}-${String(m[3]).padStart(2,"0")}`;
-}
-function classify(store){
- const s=String(store||"").toLowerCase();
- const rules=[
-  [["全家","7-11","統一超商","萊爾富","ok超商"],"餐費"],
-  [["台灣大哥大","中華電信","遠傳","電信"],"通訊費"],
-  [["台電","水費","自來水"],"水電費"],
-  [["microsoft","google","adobe","canva","openai","aws"],"軟體／訂閱"],
-  [["uber","高鐵","台鐵","計程車","停車"],"交通費"],
-  [["租金","房租"],"租金"],
-  [["廣告","facebook ads","google ads"],"廣告費"],
-  [["文具","影印","辦公","office"],"辦公費"]
- ];
- for(const [keys,cat] of rules)if(keys.some(k=>s.includes(k.toLowerCase())))return cat;
- return "未分類";
-}
-function openOCRResult(inv,credits){
- const store=inv["店家"]||"未命名店家",amount=Number(String(inv["總計"]||"0").replace(/[^0-9.-]/g,""))||0;
- const tax=Number(String(inv["稅金"]||"0").replace(/[^0-9.-]/g,""))||0,cat=classify(store);
- showModal(`<h2>🔎 OCR 辨識結果</h2><div class="notice ok">辨識完成${credits!=null?`，剩餘額度：${esc(credits)}`:""}。請確認後再入帳。</div>
- <label>店家</label><input id="oStore" value="${esc(store)}">
- <label>總金額</label><input id="oAmount" type="number" value="${amount}">
- <label>稅額</label><input id="oTax" type="number" value="${tax}">
- <label>發票號碼</label><input id="oNo" value="${esc(inv["發票號碼"]||"")}">
- <label>日期</label><input id="oDate" type="date" value="${normalizeDate(inv["日期"])}">
- <label>會計分類</label><select id="oCat">${categories("expense").map(x=>`<option ${x===cat?"selected":""}>${x}</option>`).join("")}</select>
- <p class="small">自動建議：<b>${esc(cat)}</b>。目前採用店家關鍵字規則；之後可換成真正的 AI 分類模型。</p>
- <hr><h3>建議分錄</h3><div class="row"><span>借：${esc(cat)}</span><b>$${money(amount)}</b></div><div class="row"><span>貸：現金／銀行存款</span><b>$${money(amount)}</b></div>
- <div class="actions"><button class="primary" onclick="confirmOCR()">✓ 確認並記帳</button><button class="secondary" onclick="closeModal()">取消</button></div>`);
-}
-function confirmOCR(){
- const store=document.getElementById("oStore").value.trim()||"未命名店家",amount=Number(document.getElementById("oAmount").value)||0;
- if(!amount){toast("OCR 金額為 0，請先修正");return}
- const t={id:Date.now(),title:store,amount,type:"expense",category:document.getElementById("oCat").value,date:document.getElementById("oDate").value,pending:false,invoiceNo:document.getElementById("oNo").value.trim(),tax:Number(document.getElementById("oTax").value)||0,source:"ocr"};
- tx.unshift(t);save();closeModal();page("tx");toast("✓ OCR 資料已確認並完成記帳");
-}
-function removeTx(i){if(confirm("確定刪除這筆帳務？")){tx.splice(i,1);save();page("tx")}}
-function exportData(){
- const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),transactions:tx},null,2)],{type:"application/json"});
- const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="zhangzhi-backup.json";a.click();
-}
-function showModal(html){document.getElementById("sheet").innerHTML=html;document.getElementById("modal").classList.add("show")}
-function closeModal(){document.getElementById("modal").classList.remove("show")}
-function toast(s){const t=document.getElementById("toast");t.textContent=s;t.style.display="block";setTimeout(()=>t.style.display="none",2600)}
-document.getElementById("modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal()});
-page("home");
-</script>
-<script>
-if ("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
-</script>
-</body>
-</html>
+const KEY='zhangzhi_transactions_v3';let txs=JSON.parse(localStorage.getItem(KEY)||'[]'),pending=null,worker=null;
+const $=id=>document.getElementById(id);
+function money(n){return new Intl.NumberFormat('zh-TW',{style:'currency',currency:'TWD',maximumFractionDigits:0}).format(n||0)}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function save(){localStorage.setItem(KEY,JSON.stringify(txs));render()}
+function render(){let inc=0,exp=0;txs.forEach(t=>t.type==='income'?inc+=+t.amount:exp+=+t.amount);
+$('income').textContent=money(inc);$('expense').textContent=money(exp);$('profit').textContent=money(inc-exp);
+$('tx').innerHTML=txs.length?txs.slice().reverse().map(t=>`<div class="item"><div><b>${esc(t.category||'未分類')}</b><div class="muted">${esc(t.date||'')} ${esc(t.store||'')}</div></div><div class="${t.type==='income'?'green':'red'}">${t.type==='income'?'+':'-'}${money(t.amount)}</div></div>`).join(''):'<div class="muted">尚無交易</div>';
+$('report').innerHTML=`<div class="item"><span>收入</span><b>${money(inc)}</b></div><div class="item"><span>支出</span><b>${money(exp)}</b></div><div class="item"><span>淨利</span><b>${money(inc-exp)}</b></div>`}
+function classify(store,text){const s=(store+' '+text).toLowerCase();
+if(/7-11|711|全家|familymart|萊爾富|ok mart|全聯|家樂福|超商|餐廳|便當|麥當勞|星巴克|咖啡/.test(s))return'餐費';
+if(/中華電信|台灣大哥大|遠傳|電信|寬頻/.test(s))return'通訊費';
+if(/uber|高鐵|台鐵|捷運|計程車|停車|加油|租車/.test(s))return'交通費';
+if(/台電|自來水|瓦斯|水電/.test(s))return'水電費';
+if(/租金|房租/.test(s))return'租金';
+if(/google|microsoft|adobe|canva|openai|aws|icloud|dropbox/.test(s))return'軟體／訂閱';
+if(/廣告|facebook ads|meta ads|google ads/.test(s))return'廣告費';
+if(/文具|影印|辦公|office|文書/.test(s))return'辦公費';return'未分類'}
+function extract(text){const lines=text.split(/\n+/).map(x=>x.trim()).filter(Boolean);
+let invoice=(text.match(/[A-Z]{2}[- ]?\d{8}/i)||[])[0]||'';
+let nums=[...text.matchAll(/(?:NT\$|＄|\$)?\s*([0-9][0-9,]{1,})/g)].map(m=>+m[1].replace(/,/g,'')).filter(n=>n>0&&n<10000000);
+let total=0;let tm=text.match(/(?:總計|應付|合計|TOTAL|金額)[^\d]{0,12}([0-9][0-9,]*)/i);
+if(tm)total=+tm[1].replace(/,/g,'');else if(nums.length)total=Math.max(...nums);
+let tax=0;let taxm=text.match(/(?:稅額|營業稅|稅)[^\d]{0,12}([0-9][0-9,]*)/i);if(taxm)tax=+taxm[1].replace(/,/g,'');
+let date=(text.match(/20\d{2}[\/\-.]\d{1,2}[\/\-.]\d{1,2}/)||[])[0]||'';
+let store=lines.find(x=>x.length>=2&&x.length<=30&&!/發票|統一編號|日期|時間|總計|金額|稅/.test(x))||'未辨識店家';
+return {store,total,tax,invoice,date,category:classify(store,text),raw:text}}
+$('photo').onchange=e=>{const f=e.target.files[0];if(f){$('preview').src=URL.createObjectURL(f);$('preview').style.display='block';$('status').textContent='照片已選取，按「開始 OCR」。'}};
+$('clearBtn').onclick=()=>{$('photo').value='';$('preview').style.display='none';$('status').textContent=''};
+$('ocrBtn').onclick=async()=>{const f=$('photo').files[0];if(!f){$('status').textContent='請先拍照或選擇發票照片。';return}
+$('status').textContent='正在手機上辨識，第一次可能需要較久……';$('ocrBtn').disabled=true;
+try{if(!worker)worker=await Tesseract.createWorker('chi_tra+eng');const {data}=await worker.recognize(f);pending=extract(data.text);
+$('form').innerHTML=`<label>店家</label><input id="f_store" value="${esc(pending.store)}"><label>日期</label><input id="f_date" value="${esc(pending.date)}" placeholder="YYYY/MM/DD"><label>發票號碼</label><input id="f_invoice" value="${esc(pending.invoice)}"><label>總計</label><input id="f_total" type="number" value="${pending.total||0}"><label>稅額</label><input id="f_tax" type="number" value="${pending.tax||0}"><label>會計分類</label><select id="f_cat">${['餐費','交通費','通訊費','水電費','租金','軟體／訂閱','廣告費','辦公費','未分類'].map(x=>`<option ${x===pending.category?'selected':''}>${x}</option>`).join('')}</select><p class="muted">OCR 不是百分之百準確，請確認後才入帳。</p><details><summary>查看原始 OCR</summary><pre style="white-space:pre-wrap;font-size:12px">${esc(pending.raw)}</pre></details>`;
+$('modal').style.display='flex';$('status').textContent='辨識完成，請確認資料。'}catch(e){$('status').textContent='OCR 失敗：'+e.message}$('ocrBtn').disabled=false};
+$('cancelBtn').onclick=()=>{$('modal').style.display='none'};
+$('saveBtn').onclick=()=>{txs.push({id:Date.now(),type:'expense',store:$('f_store').value,date:$('f_date').value,invoice:$('f_invoice').value,amount:+$('f_total').value||0,tax:+$('f_tax').value||0,category:$('f_cat').value,createdAt:new Date().toISOString()});save();$('modal').style.display='none';alert('已入帳')};
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));$(b.dataset.tab).classList.add('active')});
+$('exportBtn').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(txs,null,2)],{type:'application/json'}));a.download='帳智AI_帳務.json';a.click()};
+$('resetBtn').onclick=()=>{if(confirm('確定清除所有帳務？')){txs=[];save()}};render();
+</script></body></html>
